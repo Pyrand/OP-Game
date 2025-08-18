@@ -11,7 +11,7 @@ body {
   color: #3d2827;
   background-image: 
     linear-gradient(rgba(61, 40, 39, 0.7), rgba(61, 40, 39, 0.7)),
-    url('packground.png');
+    url('Photos/packground.png');
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
