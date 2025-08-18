@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>One Piece Quiz</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="icon.png">
+
+</head>
+<body>
+  <div id="quiz-container">
+
+    <h1 id="main-title">One Piece Character Quiz</h1>
+
+    <div id="mode-select">
+      <label for="mode">Game Mode:</label>
+      <select id="mode">
+        <option value="random">🎲 Random</option>
+        <option value="quote">📜 Only Quote</option>
+        <option value="emoji">😄 Only Emoji</option>
+        <option value="image">🖼️ Only Image</option>
+      </select>
+    </div>
+
+    <div id="question-area">
+        <div id="quote">Loading data...</div>
+    </div>
+    
+    <div id="correct-answer-container"></div>
+    <div id="choices"></div>
+
+    <div id="score-area">
+      <div id="score">Score: 0</div>
+      <button id="next-btn">Next Question</button>
+    </div>
+  </div>
+
+  <script src="quiz.js"></script>
+</body>
+</html>
