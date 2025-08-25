@@ -4,6 +4,8 @@ const nextBtn = document.getElementById('next-btn');
 const scoreElement = document.getElementById('score');
 const modeSelect = document.getElementById('mode');
 const correctAnswerContainer = document.getElementById('correct-answer-container');
+const correctSound = document.getElementById('correct-sound');
+const incorrectSound = document.getElementById('incorrect-sound');
 
 
 let score = 0;
@@ -51,7 +53,10 @@ modeSelect.addEventListener('change', () => {
     loadNextQuestion();
 });
 
-nextBtn.addEventListener('click', loadNextQuestion);
+nextBtn.addEventListener('click', () => {
+    playClickSound();
+    loadNextQuestion();
+});
 
 
 async function initializeData() {
@@ -282,6 +287,8 @@ function handleChoiceClick(event) {
         if (btn.innerText === correctAnswer) btn.classList.add('correct');
     });
     if (selectedBtn.innerText === correctAnswer) {
+        playSound(correctSound);
+        
         score++;
         if (score > highScore) highScore = score;
 
@@ -292,6 +299,8 @@ function handleChoiceClick(event) {
         nextBtn.style.display = 'inline-block';
     }
     else {
+        playSound(incorrectSound);
+        
         score = 0;
         scoreElement.innerText = `Score: ${score} | Max: ${highScore}`;
         selectedBtn.classList.add('incorrect');
@@ -308,31 +317,62 @@ function resetUI() {
     scoreElement.appendChild(scoreText);
 }
 
-
-function handleChoiceClick(event) {
-    const selectedBtn = event.target;
-    const allChoiceBtns = document.querySelectorAll('.choice-btn');
-    allChoiceBtns.forEach(btn => {
-        btn.disabled = true;
-        if (btn.innerText === correctAnswer) btn.classList.add('correct');
-    });
-    if (selectedBtn.innerText === correctAnswer) {
-        score++;
-        if (score > highScore) highScore = score;
-
-        const correctContainer = document.getElementById('correct-answer-container');
-        correctContainer.innerHTML = `<div class="correct-answer-label">✔ Correct answer: ${correctAnswer}</div>`;
-
-        resetUI();
-        nextBtn.style.display = 'inline-block';
-    }
-    else {
-        score = 0;
-        scoreElement.innerText = `Score: ${score} | Max: ${highScore}`;
-        selectedBtn.classList.add('incorrect');
-    }
-    nextBtn.style.display = 'inline-block';
+function playSound(audioElement) {
+    createBeepSound(audioElement === correctSound);
 }
 
+function createBeepSound(isCorrect) {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        if (isCorrect) {
+            oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1);
+            oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2);
+        } else {
+            oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(350, audioContext.currentTime + 0.08);
+        }
+        
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(isCorrect ? 0.1 : 0.05, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + (isCorrect ? 0.3 : 0.2));
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + (isCorrect ? 0.3 : 0.2));
+    } catch (error) {
+        console.log('Audio not supported');
+    }
+}
+
+function playClickSound() {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.05);
+        
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.08, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.04, audioContext.currentTime + 0.1);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.1);
+    } catch (error) {
+        console.log('Audio not supported');
+    }
+}
 
 initializeData();
