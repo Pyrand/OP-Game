@@ -5,16 +5,6 @@ const scoreElement = document.getElementById('score');
 const modeSelect = document.getElementById('mode');
 const correctAnswerContainer = document.getElementById('correct-answer-container');
 
-const characterList = [
-    'Monkey D. Luffy', 'Roronoa Zoro', 'Nami', 'Usopp', 'Sanji', 'Tony Tony Chopper',
-    'Nico Robin', 'Franky', 'Brook', 'Jinbe', 'Portgas D. Ace', 'Shanks',
-    'Trafalgar Law', 'Eustass Kid', 'Boa Hancock', 'Dracule Mihawk', 'Kaido',
-    'Big Mom', 'Gol D. Roger', 'Edward Newgate', 'Sabo', 'Garp', 'Smoker', 'Buggy',
-    'Crocodile', 'Donquixote Doflamingo', 'Katakuri', 'Enel', 'Arlong', 'Kizaru',
-    'Akainu', 'Aokiji', 'Fujitora', 'Rob Lucci', 'Vegapunk', 'Yamato', 'Oden',
-    'King', 'Queen', 'Ivankov', 'Bon Clay', 'Magellan', 'Hancock', 'Kuma', 'Reiju',
-    'Caesar Clown', 'Shiryu', 'Blackbeard', 'Hawkins', 'X Drake', 'Urouge'
-];
 
 let score = 0;
 let highScore = 0;
@@ -24,10 +14,45 @@ let emojiData = [];
 let imageData = [];
 let selectedMode = 'random';
 
+
+const characterList = [
+    'Monkey D. Luffy', 'Roronoa Zoro', 'Nami', 'Usopp', 'Sanji', 'Tony Tony Chopper',
+    'Nico Robin', 'Franky', 'Brook', 'Jinbe', 'Portgas D. Ace', 'Shanks',
+    'Trafalgar Law', 'Eustass Kid', 'Boa Hancock', 'Dracule Mihawk', 'Kaido',
+    'Big Mom', 'Gol D. Roger', 'Edward Newgate', 'Sabo', 'Garp', 'Smoker', 'Buggy',
+    'Crocodile', 'Donquixote Doflamingo', 'Katakuri', 'Enel', 'Arlong', 'Kizaru',
+    'Akainu', 'Aokiji', 'Fujitora', 'Rob Lucci', 'Vegapunk', 'Yamato', 'Oden',
+    'King', 'Queen', 'Ivankov', 'Magellan', 'Kuma', 'Reiju',
+    'Caesar Clown', 'Shiryu', 'Blackbeard', 'Hawkins', 'X Drake', 'Urouge',
+    'Kozuki Momonosuke', 'Kinemon', 'Raizo', 'Kanjuro', 'Ashura Doji', 'Inuarashi', 'Nekomamushi',
+    'Carrot', 'Pedro', 'Pekoms', 'Tamago', 'Perospero', 'Smoothie', 'Cracker', 'Oven', 'Daifuku',
+    'Sengoku', 'Tsuru', 'Koby', 'Helmeppo', 'Tashigi', 'Hina', 'Momonga', 'Onigumo', 'Doberman',
+    'Monkey D. Dragon', 'Koala', 'Hack', 'Lindbergh', 'Morley', 'Karasu', 'Belo Betty',
+    'Gecko Moria', 'Edward Weevil',
+    'Alvida', 'Morgan', 'Kuro', 'Don Krieg', 'Gin', 'Pearl', 'Johnny', 'Yosaku',
+    'Vivi', 'Igaram', 'Pell', 'Chaka', 'Kohza', 'Toto', 'Mr. 1', 'Mr. 3', 'Mr. 5', 'Miss Valentine',
+    'Wyper', 'Gan Fall', 'Pagaya', 'Conis', 'Satori', 'Shura', 'Gedatsu', 'Ohm',
+    'Iceburg', 'Paulie', 'Tilestone', 'Lulu', 'Galley-La', 'Spandam', 'Jabra', 'Kumadori', 'Fukurou', 'Kalifa',
+    'Perona', 'Absalom', 'Hogback', 'Ryuma', 'Oars', 'Lola', 'Cindry',
+    'Rayleigh', 'Shakky', 'Camie', 'Pappag', 'Hatchan', 'Duval', 'Marguerite', 'Sweet Pea', 'Aphelandra',
+    'Hannyabal', 'Domino', 'Sadi', 'Minotaurus',
+    'Neptune', 'Shirahoshi', 'Fukaboshi', 'Ryuboshi', 'Manboshi', 'Otohime', 'Fisher Tiger', 'Hody Jones', 'Vander Decken IX',
+    'Vergo', 'Monet', 'Brownbeard',
+    'Rebecca', 'Kyros', 'Riku Doldo III', 'Viola', 'Scarlett', 'Cavendish', 'Bartolomeo', 'Sai', 'Don Chinjao',
+    'Ideo', 'Leo', 'Hajrudin', 'Orlumbus', 'Bellamy', 'Senor Pink', 'Machvise', 'Dellinger', 'Lao G', 'Gladius', 'Baby 5', 'Buffalo',
+    'Zunisha', 'Wanda', 'Sicilian', 'Giovanni', 'Concelot', 'Yomo', 'Milky', 'Bariete', 'Tristan', 'Miyagi',
+    'Pudding', 'Judge', 'Ichiji', 'Niji', 'Yonji', 'Capone Bege', 'Chiffon', 'Pez', 'Bobbin', 'Amande', 'Opera', 'Counter', 'Cadenza', 'Cabaletta'
+];
+
+
+
 modeSelect.addEventListener('change', () => {
     selectedMode = modeSelect.value;
     loadNextQuestion();
 });
+
+nextBtn.addEventListener('click', loadNextQuestion);
+
 
 async function initializeData() {
     quoteElement.innerText = "Loading data...";
@@ -68,6 +93,7 @@ async function initializeData() {
     }
 }
 
+
 function pickType() {
     if (selectedMode !== 'random') return selectedMode;
     const pool = [];
@@ -86,6 +112,16 @@ async function loadNextQuestion() {
         if (!success) return;
     }
 
+    if (selectedMode === 'image' && imageData.length === 0) {
+        const success = await refillImageCache();
+        if (!success) return;
+    }
+
+    if (selectedMode === 'emoji' && emojiData.length === 0) {
+        const success = await refillEmojiCache();
+        if (!success) return;
+    }
+
     if (quoteCache.length === 0 && emojiData.length === 0 && imageData.length === 0) {
         initializeData();
         return;
@@ -93,12 +129,6 @@ async function loadNextQuestion() {
 
     const randomType = pickType();
     let data;
-
-    if (randomType === 'quote' && quoteCache.length === 0) {
-        console.log("Quotes depleted, continuing with other types.");
-        loadNextQuestion();
-        return;
-    }
 
     if (randomType === 'emoji' && emojiData.length > 0) {
         const i = Math.floor(Math.random() * emojiData.length);
@@ -113,7 +143,8 @@ async function loadNextQuestion() {
         data = { type: 'image', text: imageData[i].text, character: imageData[i].character };
         imageData.splice(i, 1);
     } else {
-        loadNextQuestion();
+        console.log("No data available for selected type, reinitializing...");
+        initializeData();
         return;
     }
 
@@ -144,6 +175,8 @@ function generateChoices(correct, sourceList) {
     return choices.sort(() => Math.random() - 0.5);
 }
 
+
+
 async function refillQuoteCache() {
   console.log("Quote cache empty, fetching new ones from API...");
   quoteElement.innerText = "Fetching new quotes...";
@@ -164,6 +197,58 @@ async function refillQuoteCache() {
     return false;
   }
 }
+
+async function refillImageCache() {
+  console.log("Image cache empty, fetching new ones from API...");
+  quoteElement.innerText = "Fetching new images...";
+  choicesElement.innerHTML = '';
+
+  try {
+    const imageRes = await fetch('https://api.jikan.moe/v4/anime/21/characters');
+    if (!imageRes.ok) throw new Error(`Image API error: ${imageRes.status}`);
+
+    const { data: imageJson } = await imageRes.json();
+    imageData = imageJson
+      .filter(c => c.character.images?.jpg?.image_url)
+      .sort((a, b) => b.favorites - a.favorites)
+      .slice(0, 75)
+      .map(c => ({
+        type: 'image',
+        text: c.character.images.jpg.image_url,
+        character: c.character.name
+      }));
+    
+    console.log("Image cache successfully refilled!");
+    return true;
+  } catch (error) {
+    console.error("ERROR while reloading images:", error);
+    quoteElement.innerText = "New images could not be loaded. The game will continue with other modes.";
+    return false;
+  }
+}
+
+async function refillEmojiCache() {
+    console.log("Emoji cache empty, reloading from file...");
+    quoteElement.innerText = "Reloading emojis...";
+    choicesElement.innerHTML = '';
+
+    try {
+        const emojiRes = await fetch('one_piece_emojis.json');
+        if (!emojiRes.ok) throw new Error(`Emoji file error: ${emojiRes.status}`);
+
+        const emojiJson = await emojiRes.json();
+        emojiData = emojiJson.slice();
+        
+        console.log("Emoji cache successfully refilled!");
+        return true;
+    } catch (error) {
+        console.error("ERROR while reloading emojis:", error);
+        quoteElement.innerText = "Emojis could not be reloaded. The game will continue with other modes.";
+        return false;
+    }
+}
+
+
 
 function displayQuestion(questionText, choices) {
     quoteElement.innerText = questionText;
@@ -199,10 +284,6 @@ function handleChoiceClick(event) {
     if (selectedBtn.innerText === correctAnswer) {
         score++;
         if (score > highScore) highScore = score;
-        allChoiceBtns.forEach(btn => {
-            btn.disabled = true;
-            if (btn.innerText === correctAnswer) btn.classList.add('correct');
-        });
 
         const correctContainer = document.getElementById('correct-answer-container');
         correctContainer.innerHTML = `<div class="correct-answer-label">✔ Correct answer: ${correctAnswer}</div>`;
@@ -227,5 +308,31 @@ function resetUI() {
     scoreElement.appendChild(scoreText);
 }
 
-nextBtn.addEventListener('click', loadNextQuestion);
+
+function handleChoiceClick(event) {
+    const selectedBtn = event.target;
+    const allChoiceBtns = document.querySelectorAll('.choice-btn');
+    allChoiceBtns.forEach(btn => {
+        btn.disabled = true;
+        if (btn.innerText === correctAnswer) btn.classList.add('correct');
+    });
+    if (selectedBtn.innerText === correctAnswer) {
+        score++;
+        if (score > highScore) highScore = score;
+
+        const correctContainer = document.getElementById('correct-answer-container');
+        correctContainer.innerHTML = `<div class="correct-answer-label">✔ Correct answer: ${correctAnswer}</div>`;
+
+        resetUI();
+        nextBtn.style.display = 'inline-block';
+    }
+    else {
+        score = 0;
+        scoreElement.innerText = `Score: ${score} | Max: ${highScore}`;
+        selectedBtn.classList.add('incorrect');
+    }
+    nextBtn.style.display = 'inline-block';
+}
+
+
 initializeData();
