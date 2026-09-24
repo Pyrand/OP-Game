@@ -4,8 +4,6 @@ const nextBtn = document.getElementById('next-btn');
 const scoreElement = document.getElementById('score');
 const modeSelect = document.getElementById('mode');
 const correctAnswerContainer = document.getElementById('correct-answer-container');
-const correctSound = document.getElementById('correct-sound');
-const incorrectSound = document.getElementById('incorrect-sound');
 
 
 let score = 0;
@@ -64,38 +62,57 @@ async function initializeData() {
     choicesElement.innerHTML = '';
     nextBtn.style.display = 'none';
 
-    try {
-        const [quoteRes, emojiRes, imageRes] = await Promise.all([
-            fetch('https://yurippe.vercel.app/api/quotes?show=one%20piece&random=10'),
-            fetch('one_piece_emojis.json'),
-            fetch('https://api.jikan.moe/v4/anime/21/characters')
-        ]);
+    // Load each source independently so one failing API doesn't break the whole game
+    const [quoteResult, emojiResult, imageResult] = await Promise.allSettled([
+        fetchJson('https://yurippe.vercel.app/api/quotes?show=one%20piece&random=10'),
+        fetchJson('one_piece_emojis.json'),
+        fetchJson('https://api.jikan.moe/v4/anime/21/characters')
+    ]);
 
-        if (!quoteRes.ok) throw new Error(`Quote API error: ${quoteRes.status}`);
-        if (!emojiRes.ok) throw new Error(`Emoji file could not be loaded: ${emojiRes.status}`);
-        if (!imageRes.ok) throw new Error(`Image data could not be retrieved: ${imageRes.status}`);
+    if (quoteResult.status === 'fulfilled') quoteCache = parseQuotes(quoteResult.value);
+    else console.error("QUOTE LOAD ERROR:", quoteResult.reason);
 
-        const quotes = await quoteRes.json();
-        const emojiJson = await emojiRes.json();
-        const { data: imageJson } = await imageRes.json();
+    if (emojiResult.status === 'fulfilled') emojiData = emojiResult.value.slice();
+    else console.error("EMOJI LOAD ERROR:", emojiResult.reason);
 
-        emojiData = emojiJson.slice();
-        quoteCache = quotes.map(q => ({ quote: q.quote, character: q.character }));
-        imageData = imageJson
-            .filter(c => c.character.images?.jpg?.image_url)
-            .sort((a, b) => b.favorites - a.favorites)
-            .slice(0, 75)
-            .map(c => ({
-                type: 'image',
-                text: c.character.images.jpg.image_url,
-                character: c.character.name
-            }));
+    if (imageResult.status === 'fulfilled') imageData = parseImages(imageResult.value);
+    else console.error("IMAGE LOAD ERROR:", imageResult.reason);
 
-        loadNextQuestion();
-    } catch (error) {
-        console.error("DATA LOAD ERROR:", error);
+    if (quoteCache.length === 0 && emojiData.length === 0 && imageData.length === 0) {
         quoteElement.innerText = "Data could not be loaded. Please refresh the page.";
+        return;
     }
+
+    loadNextQuestion();
+}
+
+async function fetchJson(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Request to ${url} failed: ${res.status}`);
+    return res.json();
+}
+
+function parseQuotes(quotes) {
+    return quotes.map(q => ({ quote: q.quote, character: q.character }));
+}
+
+// Jikan (MyAnimeList) returns names as "Last, First" (e.g. "Monkey D., Luffy"),
+// convert them to "Monkey D. Luffy" so they match the other choices.
+function normalizeName(name) {
+    const parts = name.split(',').map(p => p.trim());
+    return parts.length === 2 && parts[1] ? `${parts[0]} ${parts[1]}` : name;
+}
+
+function parseImages({ data }) {
+    return data
+        .filter(c => c.character.images?.jpg?.image_url)
+        .sort((a, b) => b.favorites - a.favorites)
+        .slice(0, 75)
+        .map(c => ({
+            type: 'image',
+            text: c.character.images.jpg.image_url,
+            character: normalizeName(c.character.name)
+        }));
 }
 
 
@@ -108,23 +125,28 @@ function pickType() {
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
+let loadId = 0;
+
 async function loadNextQuestion() {
+    const currentLoad = ++loadId;
     correctAnswerContainer.innerHTML = '';
     resetUI();
 
-    if (selectedMode === 'quote' && quoteCache.length === 0) {
-        const success = await refillQuoteCache();
-        if (!success) return;
-    }
-
-    if (selectedMode === 'image' && imageData.length === 0) {
-        const success = await refillImageCache();
-        if (!success) return;
-    }
-
-    if (selectedMode === 'emoji' && emojiData.length === 0) {
-        const success = await refillEmojiCache();
-        if (!success) return;
+    const refills = {
+        quote: [() => quoteCache, refillQuoteCache],
+        image: [() => imageData, refillImageCache],
+        emoji: [() => emojiData, refillEmojiCache]
+    };
+    const refill = refills[selectedMode];
+    if (refill && refill[0]().length === 0) {
+        const success = await refill[1]();
+        // A newer load (e.g. mode changed) started while we were waiting
+        if (currentLoad !== loadId) return;
+        if (!success || refill[0]().length === 0) {
+            if (success) quoteElement.innerText = "No new data received. Please try again.";
+            nextBtn.style.display = 'inline-block';
+            return;
+        }
     }
 
     if (quoteCache.length === 0 && emojiData.length === 0 && imageData.length === 0) {
@@ -164,20 +186,31 @@ async function loadNextQuestion() {
     }
 }
 
+function nameTokens(name) {
+    return name.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean);
+}
+
+function isSameCharacter(a, b) {
+    const ta = nameTokens(a), tb = nameTokens(b);
+    if (ta.length === 0 || tb.length === 0) return a === b;
+    const [shorter, longer] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
+    return shorter.every(t => longer.includes(t));
+}
+
 function generateChoices(correct, sourceList) {
     let choices = [correct];
-    let wrongOptions = sourceList.filter(option => option !== correct);
+    let wrongOptions = sourceList.filter(option => !isSameCharacter(option, correct));
     while (choices.length < 4 && wrongOptions.length > 0) {
         let randIndex = Math.floor(Math.random() * wrongOptions.length);
         choices.push(wrongOptions[randIndex]);
         wrongOptions.splice(randIndex, 1);
     }
-    while (choices.length < 4) {
-        let randIndex = Math.floor(Math.random() * sourceList.length);
-        let option = sourceList[randIndex];
-        if (!choices.includes(option)) choices.push(option);
+    // Fisher-Yates shuffle (sort with a random comparator is biased)
+    for (let i = choices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [choices[i], choices[j]] = [choices[j], choices[i]];
     }
-    return choices.sort(() => Math.random() - 0.5);
+    return choices;
 }
 
 
@@ -188,11 +221,7 @@ async function refillQuoteCache() {
   choicesElement.innerHTML = '';
 
   try {
-    const quoteRes = await fetch('https://yurippe.vercel.app/api/quotes?show=one%20piece&random=10');
-    if (!quoteRes.ok) throw new Error(`Quote API error: ${quoteRes.status}`);
-
-    const newQuotes = await quoteRes.json();
-    quoteCache = newQuotes.map(q => ({ quote: q.quote, character: q.character }));
+    quoteCache = parseQuotes(await fetchJson('https://yurippe.vercel.app/api/quotes?show=one%20piece&random=10'));
     
     console.log("Cache successfully refilled!");
     return true;
@@ -209,19 +238,7 @@ async function refillImageCache() {
   choicesElement.innerHTML = '';
 
   try {
-    const imageRes = await fetch('https://api.jikan.moe/v4/anime/21/characters');
-    if (!imageRes.ok) throw new Error(`Image API error: ${imageRes.status}`);
-
-    const { data: imageJson } = await imageRes.json();
-    imageData = imageJson
-      .filter(c => c.character.images?.jpg?.image_url)
-      .sort((a, b) => b.favorites - a.favorites)
-      .slice(0, 75)
-      .map(c => ({
-        type: 'image',
-        text: c.character.images.jpg.image_url,
-        character: c.character.name
-      }));
+    imageData = parseImages(await fetchJson('https://api.jikan.moe/v4/anime/21/characters'));
     
     console.log("Image cache successfully refilled!");
     return true;
@@ -238,11 +255,7 @@ async function refillEmojiCache() {
     choicesElement.innerHTML = '';
 
     try {
-        const emojiRes = await fetch('one_piece_emojis.json');
-        if (!emojiRes.ok) throw new Error(`Emoji file error: ${emojiRes.status}`);
-
-        const emojiJson = await emojiRes.json();
-        emojiData = emojiJson.slice();
+        emojiData = (await fetchJson('one_piece_emojis.json')).slice();
         
         console.log("Emoji cache successfully refilled!");
         return true;
@@ -256,74 +269,86 @@ async function refillEmojiCache() {
 
 
 function displayQuestion(questionText, choices) {
-    quoteElement.innerText = questionText;
-    choicesElement.innerHTML = '';
-    choices.forEach(choice => {
-        const btn = document.createElement('button');
-        btn.className = 'choice-btn';
-        btn.innerText = choice;
-        btn.addEventListener('click', handleChoiceClick);
-        choicesElement.appendChild(btn);
-    });
+    quoteElement.textContent = questionText;
+    renderChoices(choices);
 }
 
 function displayImageQuestion(imageUrl, choices) {
-    quoteElement.innerHTML = `<img src="${imageUrl}" alt="Character Image" style="max-width: 200px; border-radius: 12px;">`;
+    const img = document.createElement('img');
+    img.src = imageUrl;
+    img.alt = 'Character Image';
+    img.style.maxWidth = '200px';
+    img.style.borderRadius = '12px';
+    quoteElement.replaceChildren(img);
+    renderChoices(choices);
+}
+
+function renderChoices(choices) {
     choicesElement.innerHTML = '';
     choices.forEach(choice => {
         const btn = document.createElement('button');
         btn.className = 'choice-btn';
-        btn.innerText = choice;
+        btn.textContent = choice;
+        btn.dataset.choice = choice;
         btn.addEventListener('click', handleChoiceClick);
         choicesElement.appendChild(btn);
     });
 }
 
 function handleChoiceClick(event) {
-    const selectedBtn = event.target;
+    const selectedBtn = event.currentTarget;
     const allChoiceBtns = document.querySelectorAll('.choice-btn');
     allChoiceBtns.forEach(btn => {
         btn.disabled = true;
-        if (btn.innerText === correctAnswer) btn.classList.add('correct');
+        if (btn.dataset.choice === correctAnswer) btn.classList.add('correct');
     });
-    if (selectedBtn.innerText === correctAnswer) {
-        playSound(correctSound);
-        
+    if (selectedBtn.dataset.choice === correctAnswer) {
+        playSound(true);
+
         score++;
         if (score > highScore) highScore = score;
 
-        const correctContainer = document.getElementById('correct-answer-container');
-        correctContainer.innerHTML = `<div class="correct-answer-label">✔ Correct answer: ${correctAnswer}</div>`;
-
-        resetUI();
-        nextBtn.style.display = 'inline-block';
+        const label = document.createElement('div');
+        label.className = 'correct-answer-label feedback-correct';
+        label.textContent = `✔ Correct answer: ${correctAnswer}`;
+        correctAnswerContainer.replaceChildren(label);
     }
     else {
-        playSound(incorrectSound);
-        
+        playSound(false);
+
         score = 0;
-        scoreElement.innerText = `Score: ${score} | Max: ${highScore}`;
         selectedBtn.classList.add('incorrect');
     }
+    updateScore();
     nextBtn.style.display = 'inline-block';
 }
 
 function resetUI() {
     choicesElement.innerHTML = '';
     nextBtn.style.display = 'none';
+    updateScore();
+}
+
+function updateScore() {
     const scoreText = document.createElement('div');
     scoreText.innerHTML = `<strong>Score:</strong> ${score} &nbsp; | &nbsp; <strong>Max:</strong> ${highScore}`;
     scoreElement.innerHTML = '';
     scoreElement.appendChild(scoreText);
 }
 
-function playSound(audioElement) {
-    createBeepSound(audioElement === correctSound);
+let sharedAudioContext = null;
+
+function getAudioContext() {
+    if (!sharedAudioContext) {
+        sharedAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (sharedAudioContext.state === 'suspended') sharedAudioContext.resume();
+    return sharedAudioContext;
 }
 
-function createBeepSound(isCorrect) {
+function playSound(isCorrect) {
     try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const audioContext = getAudioContext();
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
         
@@ -353,7 +378,7 @@ function createBeepSound(isCorrect) {
 
 function playClickSound() {
     try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const audioContext = getAudioContext();
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
         
