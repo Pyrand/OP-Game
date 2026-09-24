@@ -62,18 +62,16 @@ async function initializeData() {
     choicesElement.innerHTML = '';
     nextBtn.style.display = 'none';
 
-    // Load each source independently so one failing API doesn't break the whole game
-    const [quoteResult, emojiResult, imageResult] = await Promise.allSettled([
+    emojiData = EMOJI_DATA.slice();
+
+    // Load each API independently so one failing API doesn't break the whole game
+    const [quoteResult, imageResult] = await Promise.allSettled([
         fetchJson('https://yurippe.vercel.app/api/quotes?show=one%20piece&random=10'),
-        fetchJson('one_piece_emojis.json'),
         fetchJson('https://api.jikan.moe/v4/anime/21/characters')
     ]);
 
     if (quoteResult.status === 'fulfilled') quoteCache = parseQuotes(quoteResult.value);
     else console.error("QUOTE LOAD ERROR:", quoteResult.reason);
-
-    if (emojiResult.status === 'fulfilled') emojiData = emojiResult.value.slice();
-    else console.error("EMOJI LOAD ERROR:", emojiResult.reason);
 
     if (imageResult.status === 'fulfilled') imageData = parseImages(imageResult.value);
     else console.error("IMAGE LOAD ERROR:", imageResult.reason);
@@ -250,20 +248,8 @@ async function refillImageCache() {
 }
 
 async function refillEmojiCache() {
-    console.log("Emoji cache empty, reloading from file...");
-    quoteElement.innerText = "Reloading emojis...";
-    choicesElement.innerHTML = '';
-
-    try {
-        emojiData = (await fetchJson('one_piece_emojis.json')).slice();
-        
-        console.log("Emoji cache successfully refilled!");
-        return true;
-    } catch (error) {
-        console.error("ERROR while reloading emojis:", error);
-        quoteElement.innerText = "Emojis could not be reloaded. The game will continue with other modes.";
-        return false;
-    }
+    emojiData = EMOJI_DATA.slice();
+    return true;
 }
 
 

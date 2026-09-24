@@ -1,4 +1,5 @@
-[
+// Emoji clues, loaded with a <script> tag so the game also works when opened via file://
+const EMOJI_DATA = [
   {
     "character": "Monkey D. Luffy",
     "emoji": "🐵👒🍖☠️"
@@ -756,4 +757,4 @@
     "character": "Cabaletta",
     "emoji": "🎻🍰💃💜"
   }
-]
+];
