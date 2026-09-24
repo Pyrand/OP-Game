@@ -7,7 +7,8 @@ const correctAnswerContainer = document.getElementById('correct-answer-container
 
 
 let score = 0;
-let highScore = 0;
+const HIGH_SCORE_KEY = 'opQuizBestStreak';
+let highScore = loadHighScore();
 let correctAnswer = '';
 let quoteCache = [];
 let emojiData = [];
@@ -313,12 +314,30 @@ function displayQuestion(questionText, choices) {
     renderChoices(choices);
 }
 
+// Stop skipping after this many broken images in a row (e.g. offline or the image host is down)
+const MAX_IMAGE_FAILURES = 5;
+let imageFailures = 0;
+
 function displayImageQuestion(imageUrl, choices) {
+    const questionLoad = loadId;
     const img = document.createElement('img');
-    img.src = imageUrl;
     img.alt = 'Character Image';
-    img.style.maxWidth = '200px';
-    img.style.borderRadius = '12px';
+    img.onload = () => { imageFailures = 0; };
+    img.onerror = () => {
+        // Ignore if the player already answered or another question has replaced this one
+        if (questionLoad !== loadId || !questionPending) return;
+        console.error("IMAGE ERROR, skipping question:", imageUrl);
+        if (++imageFailures >= MAX_IMAGE_FAILURES) {
+            imageFailures = 0;
+            questionPending = false;
+            choicesElement.innerHTML = '';
+            quoteElement.innerText = "Images could not be loaded. Please try again or pick another mode.";
+            nextBtn.style.display = 'inline-block';
+            return;
+        }
+        loadNextQuestion();
+    };
+    img.src = imageUrl;
     quoteElement.replaceChildren(img);
     renderChoices(choices);
 }
@@ -343,24 +362,30 @@ function handleChoiceClick(event) {
         btn.disabled = true;
         if (btn.dataset.choice === correctAnswer) btn.classList.add('correct');
     });
-    if (selectedBtn.dataset.choice === correctAnswer) {
+    const isCorrect = selectedBtn.dataset.choice === correctAnswer;
+    const label = document.createElement('div');
+    if (isCorrect) {
         playSound(true);
 
         score++;
-        if (score > highScore) highScore = score;
+        if (score > highScore) {
+            highScore = score;
+            saveHighScore(highScore);
+        }
 
-        const label = document.createElement('div');
         label.className = 'correct-answer-label feedback-correct';
         label.textContent = `✔ Correct answer: ${correctAnswer}`;
-        correctAnswerContainer.replaceChildren(label);
     }
     else {
         playSound(false);
 
         score = 0;
         selectedBtn.classList.add('incorrect');
-        correctAnswerContainer.replaceChildren();
+
+        label.className = 'correct-answer-label feedback-incorrect';
+        label.textContent = `✘ Wrong! Correct answer: ${correctAnswer}`;
     }
+    correctAnswerContainer.replaceChildren(label);
     updateScore();
     nextBtn.style.display = 'inline-block';
 }
@@ -373,9 +398,27 @@ function resetUI() {
 
 function updateScore() {
     const scoreText = document.createElement('div');
-    scoreText.innerHTML = `<strong>Score:</strong> ${score} &nbsp; | &nbsp; <strong>Max:</strong> ${highScore}`;
+    scoreText.innerHTML = `<strong>Streak:</strong> ${score} &nbsp; | &nbsp; <strong>Best:</strong> ${highScore}`;
     scoreElement.innerHTML = '';
     scoreElement.appendChild(scoreText);
+}
+
+// Storage can be unavailable (private mode, blocked site data), so the game falls back to 0
+function loadHighScore() {
+    try {
+        const saved = parseInt(localStorage.getItem(HIGH_SCORE_KEY), 10);
+        return Number.isFinite(saved) && saved > 0 ? saved : 0;
+    } catch {
+        return 0;
+    }
+}
+
+function saveHighScore(value) {
+    try {
+        localStorage.setItem(HIGH_SCORE_KEY, String(value));
+    } catch {
+        // Best streak just won't persist this session
+    }
 }
 
 let sharedAudioContext = null;
