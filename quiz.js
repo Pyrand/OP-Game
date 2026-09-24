@@ -41,8 +41,37 @@ const characterList = [
     'Rebecca', 'Kyros', 'Riku Doldo III', 'Viola', 'Scarlett', 'Cavendish', 'Bartolomeo', 'Sai', 'Don Chinjao',
     'Ideo', 'Leo', 'Hajrudin', 'Orlumbus', 'Bellamy', 'Senor Pink', 'Machvise', 'Dellinger', 'Lao G', 'Gladius', 'Baby 5', 'Buffalo',
     'Zunisha', 'Wanda', 'Sicilian', 'Giovanni', 'Concelot', 'Yomo', 'Milky', 'Bariete', 'Tristan', 'Miyagi',
-    'Pudding', 'Judge', 'Ichiji', 'Niji', 'Yonji', 'Capone Bege', 'Chiffon', 'Pez', 'Bobbin', 'Amande', 'Opera', 'Counter', 'Cadenza', 'Cabaletta'
+    'Pudding', 'Judge', 'Ichiji', 'Niji', 'Yonji', 'Capone Bege', 'Chiffon', 'Pez', 'Bobbin', 'Amande', 'Opera', 'Counter', 'Cadenza', 'Cabaletta',
+    'Marco', 'Uta', 'Jewelry Bonney', 'Bepo', 'Killer', 'Benn Beckman', 'Kaku', 'Rocks D. Xebec', 'Hiluluk',
+    'Otama', 'Ulti', 'Okiku', 'Loki', 'Corazon', 'Mr. 2'
 ];
+
+// API names that refer to a character by a different name than characterList.
+// Names that only differ by extra parts (e.g. "Charlotte Katakuri" vs "Katakuri")
+// are matched automatically by isSameCharacter and don't need an entry here.
+const NAME_ALIASES = {
+    'Kaidou': 'Kaido',
+    'Marshall D. Teach': 'Blackbeard',
+    'Kuzan': 'Aokiji',
+    'Borsalino': 'Kizaru',
+    'Sakazuki': 'Akainu',
+    'Isshou': 'Fujitora',
+    'Charlotte Linlin': 'Big Mom',
+    'Donquixote Rosinante': 'Corazon',
+    'Bentham': 'Mr. 2',
+    'Jinbei': 'Jinbe',
+    'Wiper': 'Wyper',
+    'Shimotsuki Ryuuma': 'Ryuma'
+};
+
+// Maps an API name to its characterList spelling, or null if the character isn't in the list.
+// This keeps the correct choice formatted like the wrong ones, so it can't be spotted by its name.
+function canonicalName(name) {
+    if (NAME_ALIASES[name]) return NAME_ALIASES[name];
+    if (characterList.includes(name)) return name;
+    const matches = characterList.filter(c => isSameCharacter(c, name));
+    return matches.length === 1 ? matches[0] : null;
+}
 
 
 
@@ -91,7 +120,9 @@ async function fetchJson(url) {
 }
 
 function parseQuotes(quotes) {
-    return quotes.map(q => ({ quote: q.quote, character: q.character }));
+    return quotes
+        .map(q => ({ quote: q.quote, character: canonicalName(q.character) }))
+        .filter(q => q.character);
 }
 
 // Jikan (MyAnimeList) returns names as "Last, First" (e.g. "Monkey D., Luffy"),
@@ -105,12 +136,13 @@ function parseImages({ data }) {
     return data
         .filter(c => c.character.images?.jpg?.image_url)
         .sort((a, b) => b.favorites - a.favorites)
-        .slice(0, 75)
         .map(c => ({
             type: 'image',
             text: c.character.images.jpg.image_url,
-            character: normalizeName(c.character.name)
-        }));
+            character: canonicalName(normalizeName(c.character.name))
+        }))
+        .filter(c => c.character)
+        .slice(0, 75);
 }
 
 
