@@ -11,7 +11,7 @@ body {
   color: #4a3c3a;
   background-image: 
     linear-gradient(rgba(70, 50, 45, 0.6), rgba(85, 65, 55, 0.5)),
-    url('Photos/packground.png');
+    url('Photos/background.webp');
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
