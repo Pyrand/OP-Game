@@ -115,12 +115,12 @@ async function initializeData() {
 
     // Load each API independently so one failing API doesn't break the whole game
     const [quoteResult, imageResult] = await Promise.allSettled([
-        fetchJson('https://yurippe.vercel.app/api/quotes?show=one%20piece&random=10'),
+        loadQuotes(),
         fetchJson('https://api.jikan.moe/v4/anime/21/characters')
     ]);
 
-    if (quoteResult.status === 'fulfilled') quoteCache = parseQuotes(quoteResult.value);
-    else console.error("QUOTE LOAD ERROR:", quoteResult.reason);
+    // loadQuotes never rejects, it falls back to the offline pool
+    quoteCache = quoteResult.value;
 
     if (imageResult.status === 'fulfilled') imageData = parseImages(imageResult.value);
     else console.error("IMAGE LOAD ERROR:", imageResult.reason);
@@ -139,10 +139,53 @@ async function fetchJson(url) {
     return res.json();
 }
 
+const QUOTE_API_URL = 'https://yurippe.vercel.app/api/quotes?show=one%20piece&random=10';
+
+// Quotes already asked, keyed by quoteKey, so refills don't repeat them
+const usedQuotes = new Set();
+
+// Punctuation-insensitive key, so "Sometimes, the blood..." and "Sometimes the blood..." count as the same quote
+function quoteKey(text) {
+    return text.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// True if the quote contains the speaker's own name, which would give the answer away
+function mentionsOwnName(text, names) {
+    const words = new Set(nameTokens(text));
+    return names.some(name => nameTokens(name).some(t => t.length > 2 && words.has(t)));
+}
+
 function parseQuotes(quotes) {
-    return quotes
-        .map(q => ({ quote: q.quote, character: canonicalName(q.character) }))
-        .filter(q => q.character);
+    const seen = new Set();
+    const result = [];
+    for (const q of quotes) {
+        const character = canonicalName(q.character);
+        // Drop stage directions like "*To Captain Kuro*"
+        const quote = (q.quote || '').replace(/\*[^*]*\*/g, '').trim();
+        const key = quoteKey(quote);
+        if (!character || !key || seen.has(key) || usedQuotes.has(key)) continue;
+        if (mentionsOwnName(quote, [q.character, character])) continue;
+        seen.add(key);
+        result.push({ quote, character });
+    }
+    return result;
+}
+
+// Never fails: falls back to the offline pool when the API is down or only returns quotes already asked
+async function loadQuotes() {
+    let quotes = [];
+    try {
+        quotes = parseQuotes(await fetchJson(QUOTE_API_URL));
+    } catch (error) {
+        console.error("QUOTE LOAD ERROR, using offline quotes:", error);
+    }
+    if (quotes.length === 0) quotes = parseQuotes(QUOTE_DATA);
+    if (quotes.length === 0) {
+        // Every quote has been asked, start the pool over
+        usedQuotes.clear();
+        quotes = parseQuotes(QUOTE_DATA);
+    }
+    return quotes;
 }
 
 // Jikan (MyAnimeList) returns names as "Last, First" (e.g. "Monkey D., Luffy"),
@@ -215,6 +258,7 @@ async function loadNextQuestion() {
     } else if (randomType === 'quote' && quoteCache.length > 0) {
         const i = Math.floor(Math.random() * quoteCache.length);
         data = { type: 'quote', text: quoteCache[i].quote, character: quoteCache[i].character };
+        usedQuotes.add(quoteKey(data.text));
         quoteCache.splice(i, 1);
     } else if (randomType === 'image' && imageData.length > 0) {
         const i = Math.floor(Math.random() * imageData.length);
@@ -273,16 +317,9 @@ async function refillQuoteCache() {
   quoteElement.innerText = "Fetching new quotes...";
   choicesElement.innerHTML = '';
 
-  try {
-    quoteCache = parseQuotes(await fetchJson('https://yurippe.vercel.app/api/quotes?show=one%20piece&random=10'));
-    
-    console.log("Cache successfully refilled!");
-    return true;
-  } catch (error) {
-    console.error("ERROR while reloading quotes:", error);
-    quoteElement.innerText = "New quotes could not be loaded. The game will continue with other modes.";
-    return false;
-  }
+  quoteCache = await loadQuotes();
+  console.log("Cache successfully refilled!");
+  return true;
 }
 
 async function refillImageCache() {
