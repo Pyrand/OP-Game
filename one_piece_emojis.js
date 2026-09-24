@@ -780,5 +780,149 @@ const EMOJI_DATA = [
   {
     "character": "Tashigi",
     "emoji": "👓🗡️⚓📚"
+  },
+  {
+    "character": "Marco",
+    "emoji": "🔥🐦💙🍍"
+  },
+  {
+    "character": "Uta",
+    "emoji": "🎤🎶🎀🌐"
+  },
+  {
+    "character": "Jewelry Bonney",
+    "emoji": "🍕👶👵🎩"
+  },
+  {
+    "character": "Bepo",
+    "emoji": "🐻‍❄️🥋🙇⚓"
+  },
+  {
+    "character": "Killer",
+    "emoji": "🎭🌀⚔️😂"
+  },
+  {
+    "character": "Benn Beckman",
+    "emoji": "🚬🔫🧠🍶"
+  },
+  {
+    "character": "Kaku",
+    "emoji": "🦒📐🗡️🕴️"
+  },
+  {
+    "character": "Rocks D. Xebec",
+    "emoji": "🏴‍☠️😈💀🌋"
+  },
+  {
+    "character": "Hiluluk",
+    "emoji": "🌸🩺💀🧪"
+  },
+  {
+    "character": "Otama",
+    "emoji": "🍡👧🦊🌸"
+  },
+  {
+    "character": "Ulti",
+    "emoji": "🦕🤯🐏👧"
+  },
+  {
+    "character": "Okiku",
+    "emoji": "👘🗡️❄️🌸"
+  },
+  {
+    "character": "Loki",
+    "emoji": "🔨⚡🌳👹"
+  },
+  {
+    "character": "Corazon",
+    "emoji": "💄🤫🚬🔥"
+  },
+  {
+    "character": "Mr. 2",
+    "emoji": "🦢🩰💋👯"
+  },
+  {
+    "character": "Bellemere",
+    "emoji": "🍊🚬⚓💔"
+  },
+  {
+    "character": "Nojiko",
+    "emoji": "🍊💙👧🏡"
+  },
+  {
+    "character": "Zeff",
+    "emoji": "🦿👨‍🍳🥸🚢"
+  },
+  {
+    "character": "Kuina",
+    "emoji": "🗡️👧🥋🪦"
+  },
+  {
+    "character": "Kureha",
+    "emoji": "👵🍷🩺❄️"
+  },
+  {
+    "character": "Makino",
+    "emoji": "🍺👩🏡⛵"
+  },
+  {
+    "character": "Dadan",
+    "emoji": "⛰️🪓👵🚬"
+  },
+  {
+    "character": "Zephyr",
+    "emoji": "🦾⚓👨‍🏫💥"
+  },
+  {
+    "character": "Imu",
+    "emoji": "👁️🪑🌍🌹"
+  },
+  {
+    "character": "Foxy",
+    "emoji": "🐌🎮🏴‍☠️😭"
+  },
+  {
+    "character": "Jango",
+    "emoji": "🌀😵🕺🕶️"
+  },
+  {
+    "character": "Izou",
+    "emoji": "👘🔫💄🔥"
+  },
+  {
+    "character": "Kawamatsu",
+    "emoji": "🐢🍙🗡️🤼"
+  },
+  {
+    "character": "Komurasaki",
+    "emoji": "👘💋🌸💰"
+  },
+  {
+    "character": "Black Maria",
+    "emoji": "🕷️🕸️👘🔥"
+  },
+  {
+    "character": "Sugar",
+    "emoji": "🍇🧸👧🍬"
+  },
+  {
+    "character": "Jaguar D. Saul",
+    "emoji": "🧔🏔️📚😆"
+  },
+  {
+    "character": "Montblanc Norland",
+    "emoji": "🔔🗺️🌳🤥"
+  },
+  {
+    "character": "Scratchmen Apoo",
+    "emoji": "🎹🎵💥🦍"
+  },
+  {
+    "character": "Tom",
+    "emoji": "🐟🔨🚢⛓️"
+  },
+  {
+    "character": "Morgans",
+    "emoji": "🐦📰🎩💰"
   }
 ];
