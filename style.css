@@ -166,6 +166,12 @@ body {
 }
 .feedback-correct { color: #52a373; }
 .feedback-incorrect { color: #a53426; }
+.mode-change-note {
+  font-size: 0.75em;
+  font-weight: 400;
+  font-style: italic;
+  color: #6b5d5b;
+}
 
 #score-area {
   display: flex;

@@ -13,6 +13,9 @@ let quoteCache = [];
 let emojiData = [];
 let imageData = [];
 let selectedMode = 'random';
+// Mode the question on screen was loaded with, and whether it is still waiting for an answer
+let questionMode = null;
+let questionPending = false;
 
 
 const characterList = [
@@ -77,8 +80,24 @@ function canonicalName(name) {
 
 modeSelect.addEventListener('change', () => {
     selectedMode = modeSelect.value;
+    // Changing mode must not skip an unanswered question, so it applies from the next one
+    if (questionPending) {
+        showModeChangeNote();
+        return;
+    }
     loadNextQuestion();
 });
+
+function showModeChangeNote() {
+    if (selectedMode === questionMode) {
+        correctAnswerContainer.replaceChildren();
+        return;
+    }
+    const note = document.createElement('div');
+    note.className = 'mode-change-note';
+    note.textContent = 'The new mode will start from the next question.';
+    correctAnswerContainer.replaceChildren(note);
+}
 
 nextBtn.addEventListener('click', () => {
     playClickSound();
@@ -159,6 +178,7 @@ let loadId = 0;
 
 async function loadNextQuestion() {
     const currentLoad = ++loadId;
+    questionPending = false;
     correctAnswerContainer.innerHTML = '';
     resetUI();
 
@@ -214,6 +234,8 @@ async function loadNextQuestion() {
         const questionText = data.type === 'emoji' ? data.text : `"${data.text}"`;
         displayQuestion(questionText, choices);
     }
+    questionMode = selectedMode;
+    questionPending = true;
 }
 
 function nameTokens(name) {
@@ -315,6 +337,7 @@ function renderChoices(choices) {
 
 function handleChoiceClick(event) {
     const selectedBtn = event.currentTarget;
+    questionPending = false;
     const allChoiceBtns = document.querySelectorAll('.choice-btn');
     allChoiceBtns.forEach(btn => {
         btn.disabled = true;
@@ -336,6 +359,7 @@ function handleChoiceClick(event) {
 
         score = 0;
         selectedBtn.classList.add('incorrect');
+        correctAnswerContainer.replaceChildren();
     }
     updateScore();
     nextBtn.style.display = 'inline-block';
