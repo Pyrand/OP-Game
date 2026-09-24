@@ -47,7 +47,10 @@ const characterList = [
     'Zunisha', 'Wanda', 'Sicilian', 'Giovanni', 'Concelot', 'Yomo', 'Milky', 'Bariete', 'Tristan', 'Miyagi',
     'Pudding', 'Judge', 'Ichiji', 'Niji', 'Yonji', 'Capone Bege', 'Chiffon', 'Pez', 'Bobbin', 'Amande', 'Opera', 'Counter', 'Cadenza', 'Cabaletta',
     'Marco', 'Uta', 'Jewelry Bonney', 'Bepo', 'Killer', 'Benn Beckman', 'Kaku', 'Rocks D. Xebec', 'Hiluluk',
-    'Otama', 'Ulti', 'Okiku', 'Loki', 'Corazon', 'Mr. 2'
+    'Otama', 'Ulti', 'Okiku', 'Loki', 'Corazon', 'Mr. 2',
+    'Bellemere', 'Nojiko', 'Zeff', 'Kuina', 'Kureha', 'Makino', 'Dadan', 'Zephyr', 'Imu', 'Foxy', 'Jango',
+    'Izou', 'Kawamatsu', 'Komurasaki', 'Black Maria', 'Sugar', 'Jaguar D. Saul', 'Montblanc Norland',
+    'Scratchmen Apoo', 'Tom', 'Morgans'
 ];
 
 // API names that refer to a character by a different name than characterList.
@@ -122,7 +125,10 @@ async function initializeData() {
     // loadQuotes never rejects, it falls back to the offline pool
     quoteCache = quoteResult.value;
 
-    if (imageResult.status === 'fulfilled') imageData = parseImages(imageResult.value);
+    if (imageResult.status === 'fulfilled') {
+        imagePool = parseImages(imageResult.value);
+        imageData = imagePool.slice();
+    }
     else console.error("IMAGE LOAD ERROR:", imageResult.reason);
 
     if (quoteCache.length === 0 && emojiData.length === 0 && imageData.length === 0) {
@@ -195,17 +201,36 @@ function normalizeName(name) {
     return parts.length === 2 && parts[1] ? `${parts[0]} ${parts[1]}` : name;
 }
 
+// Only the most popular characters are used; further down the list they get too obscure to guess
+const IMAGE_POOL_SIZE = 150;
+
+// Every usable character from the API, kept so refills don't have to call the API again
+let imagePool = [];
+
 function parseImages({ data }) {
     return data
         .filter(c => c.character.images?.jpg?.image_url)
         .sort((a, b) => b.favorites - a.favorites)
+        .slice(0, IMAGE_POOL_SIZE)
         .map(c => ({
             type: 'image',
             text: c.character.images.jpg.image_url,
-            character: canonicalName(normalizeName(c.character.name))
+            character: canonicalName(normalizeName(c.character.name)),
+            favorites: c.favorites
         }))
-        .filter(c => c.character)
-        .slice(0, 75);
+        .filter(c => c.character);
+}
+
+// Popular characters are more likely to come first, but the log keeps lesser-known ones in play
+// (a character with 100k favorites is ~4x as likely as one with 15, not 7000x)
+function pickWeightedImageIndex() {
+    const weights = imageData.map(d => Math.log((d.favorites || 0) + 2));
+    let r = Math.random() * weights.reduce((a, b) => a + b, 0);
+    for (let i = 0; i < weights.length; i++) {
+        r -= weights[i];
+        if (r < 0) return i;
+    }
+    return weights.length - 1;
 }
 
 
@@ -261,7 +286,7 @@ async function loadNextQuestion() {
         usedQuotes.add(quoteKey(data.text));
         quoteCache.splice(i, 1);
     } else if (randomType === 'image' && imageData.length > 0) {
-        const i = Math.floor(Math.random() * imageData.length);
+        const i = pickWeightedImageIndex();
         data = { type: 'image', text: imageData[i].text, character: imageData[i].character };
         imageData.splice(i, 1);
     } else {
@@ -323,13 +348,20 @@ async function refillQuoteCache() {
 }
 
 async function refillImageCache() {
+  // Every character has been shown once, start the pool over without another API call
+  if (imagePool.length > 0) {
+    imageData = imagePool.slice();
+    return true;
+  }
+
   console.log("Image cache empty, fetching new ones from API...");
   quoteElement.innerText = "Fetching new images...";
   choicesElement.innerHTML = '';
 
   try {
-    imageData = parseImages(await fetchJson('https://api.jikan.moe/v4/anime/21/characters'));
-    
+    imagePool = parseImages(await fetchJson('https://api.jikan.moe/v4/anime/21/characters'));
+    imageData = imagePool.slice();
+
     console.log("Image cache successfully refilled!");
     return true;
   } catch (error) {
