@@ -16,16 +16,27 @@
 
     <h1 id="main-title">One Piece Character Quiz</h1>
 
-    <div id="mode-select">
-      <label for="mode">Game Mode:</label>
-      <span class="select-wrap">
-        <select id="mode">
-          <option value="random">🎲 Random</option>
-          <option value="quote">📜 Only Quote</option>
-          <option value="emoji">😄 Only Emoji</option>
-          <option value="image">🖼️ Only Image</option>
-        </select>
-      </span>
+    <div id="settings">
+      <div class="setting">
+        <label for="mode">Game Mode:</label>
+        <span class="select-wrap">
+          <select id="mode">
+            <option value="random">🎲 Random</option>
+            <option value="quote">📜 Only Quote</option>
+            <option value="emoji">😄 Only Emoji</option>
+            <option value="image">🖼️ Only Image</option>
+          </select>
+        </span>
+      </div>
+      <div class="setting">
+        <label for="lives">Lives:</label>
+        <span class="select-wrap">
+          <select id="lives">
+            <option value="3">❤️ 3 Lives</option>
+            <option value="1">💀 1 Life</option>
+          </select>
+        </span>
+      </div>
     </div>
 
     <div id="question-area">
@@ -34,6 +45,14 @@
     
     <div id="correct-answer-container" aria-live="polite"></div>
     <div id="choices"></div>
+
+    <div id="game-over" hidden>
+      <h2 id="game-over-title">Game Over</h2>
+      <p id="final-score"></p>
+      <p id="new-record" hidden>🏆 New record!</p>
+      <p id="final-best"></p>
+      <button id="play-again-btn">Play Again</button>
+    </div>
 
     <div id="score-area">
       <div id="score">Streak: 0</div>

@@ -490,10 +490,6 @@ const EMOJI_DATA = [
     "emoji": "🔧🚢🐦💪"
   },
   {
-    "character": "Galley-La",
-    "emoji": "🔧🚢🏗️⚓"
-  },
-  {
     "character": "Jabra",
     "emoji": "🐺👔💪🗡️"
   },
@@ -756,5 +752,33 @@ const EMOJI_DATA = [
   {
     "character": "Cabaletta",
     "emoji": "🎻🍰💃💜"
+  },
+  {
+    "character": "King",
+    "emoji": "🔥🦅🗡️🎭"
+  },
+  {
+    "character": "Queen",
+    "emoji": "🦕🤖🎤🦠"
+  },
+  {
+    "character": "Shiryu",
+    "emoji": "🌧️🗡️👻⛓️"
+  },
+  {
+    "character": "Hawkins",
+    "emoji": "🃏🔮🌾🪆"
+  },
+  {
+    "character": "X Drake",
+    "emoji": "🦖🕵️🏴‍☠️⚓"
+  },
+  {
+    "character": "Urouge",
+    "emoji": "🙏😇💪☁️"
+  },
+  {
+    "character": "Tashigi",
+    "emoji": "👓🗡️⚓📚"
   }
 ];

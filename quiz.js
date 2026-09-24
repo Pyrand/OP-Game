@@ -4,11 +4,22 @@ const nextBtn = document.getElementById('next-btn');
 const scoreElement = document.getElementById('score');
 const modeSelect = document.getElementById('mode');
 const correctAnswerContainer = document.getElementById('correct-answer-container');
+const livesSelect = document.getElementById('lives');
+const questionArea = document.getElementById('question-area');
+const gameOverElement = document.getElementById('game-over');
+const playAgainBtn = document.getElementById('play-again-btn');
 
 
+const LIVES_KEY = 'opQuizLives';
+let maxLives = loadLivesSetting();
+livesSelect.value = String(maxLives);
+let lives = maxLives;
 let score = 0;
-const HIGH_SCORE_KEY = 'opQuizBestStreak';
 let highScore = loadHighScore();
+// Best at the start of this game, to tell whether the final score is a new record
+let bestAtStart = highScore;
+// True once the last life is lost; the game over screen follows the answer reveal
+let gameOver = false;
 let correctAnswer = '';
 let quoteCache = [];
 let emojiData = [];
@@ -36,7 +47,7 @@ const characterList = [
     'Alvida', 'Morgan', 'Kuro', 'Don Krieg', 'Gin', 'Pearl', 'Johnny', 'Yosaku',
     'Vivi', 'Igaram', 'Pell', 'Chaka', 'Kohza', 'Toto', 'Mr. 1', 'Mr. 3', 'Mr. 5', 'Miss Valentine',
     'Wyper', 'Gan Fall', 'Pagaya', 'Conis', 'Satori', 'Shura', 'Gedatsu', 'Ohm',
-    'Iceburg', 'Paulie', 'Tilestone', 'Lulu', 'Galley-La', 'Spandam', 'Jabra', 'Kumadori', 'Fukurou', 'Kalifa',
+    'Iceburg', 'Paulie', 'Tilestone', 'Lulu', 'Spandam', 'Jabra', 'Kumadori', 'Fukurou', 'Kalifa',
     'Perona', 'Absalom', 'Hogback', 'Ryuma', 'Oars', 'Lola', 'Cindry',
     'Rayleigh', 'Shakky', 'Camie', 'Pappag', 'Hatchan', 'Duval', 'Marguerite', 'Sweet Pea', 'Aphelandra',
     'Hannyabal', 'Domino', 'Sadi', 'Minotaurus',
@@ -84,6 +95,7 @@ function canonicalName(name) {
 
 modeSelect.addEventListener('change', () => {
     selectedMode = modeSelect.value;
+    if (gameOver) return;
     // Changing mode must not skip an unanswered question, so it applies from the next one
     if (questionPending) {
         showModeChangeNote();
@@ -105,8 +117,48 @@ function showModeChangeNote() {
 
 nextBtn.addEventListener('click', () => {
     playClickSound();
-    loadNextQuestion();
+    if (gameOver) showGameOver();
+    else loadNextQuestion();
 });
+
+// A different number of lives is a different game, so it starts over
+livesSelect.addEventListener('change', () => {
+    maxLives = Number(livesSelect.value);
+    saveLivesSetting(maxLives);
+    startNewGame();
+});
+
+playAgainBtn.addEventListener('click', () => {
+    playClickSound();
+    startNewGame();
+});
+
+function startNewGame() {
+    score = 0;
+    lives = maxLives;
+    highScore = loadHighScore();
+    bestAtStart = highScore;
+    gameOver = false;
+    gameOverElement.hidden = true;
+    questionArea.hidden = false;
+    choicesElement.hidden = false;
+    correctAnswerContainer.hidden = false;
+    loadNextQuestion();
+}
+
+function showGameOver() {
+    questionPending = false;
+    questionArea.hidden = true;
+    choicesElement.hidden = true;
+    correctAnswerContainer.hidden = true;
+    nextBtn.style.display = 'none';
+
+    document.getElementById('final-score').textContent = `Score: ${score}`;
+    document.getElementById('final-best').textContent = `Best: ${highScore}`;
+    document.getElementById('new-record').hidden = !(score > bestAtStart);
+    gameOverElement.hidden = false;
+    playAgainBtn.focus();
+}
 
 
 async function initializeData() {
@@ -448,7 +500,8 @@ function handleChoiceClick(event) {
     else {
         playSound(false);
 
-        score = 0;
+        lives--;
+        if (lives <= 0) gameOver = true;
         selectedBtn.classList.add('incorrect');
 
         label.className = 'correct-answer-label feedback-incorrect';
@@ -456,6 +509,7 @@ function handleChoiceClick(event) {
     }
     correctAnswerContainer.replaceChildren(label);
     updateScore();
+    nextBtn.textContent = gameOver ? 'See Results' : 'Next Question';
     nextBtn.style.display = 'inline-block';
 }
 
@@ -467,16 +521,27 @@ function resetUI() {
 
 function updateScore() {
     const scoreText = document.createElement('div');
-    scoreText.innerHTML = `<strong>Streak:</strong> ${score} &nbsp; | &nbsp; <strong>Best:</strong> ${highScore}`;
-    scoreElement.innerHTML = '';
-    scoreElement.appendChild(scoreText);
+    scoreText.innerHTML = `<strong>Score:</strong> ${score} &nbsp; | &nbsp; <strong>Best:</strong> ${highScore}`;
+    const hearts = document.createElement('div');
+    hearts.className = 'lives';
+    hearts.textContent = '❤️'.repeat(Math.max(lives, 0)) + '🖤'.repeat(maxLives - Math.max(lives, 0));
+    hearts.setAttribute('aria-label', `${Math.max(lives, 0)} of ${maxLives} lives left`);
+    scoreElement.replaceChildren(scoreText, hearts);
 }
 
-// Storage can be unavailable (private mode, blocked site data), so the game falls back to 0
+// Each lives setting keeps its own record, since 1-life and 3-life scores aren't comparable
+function highScoreKey() {
+    return `opQuizBest_${maxLives}`;
+}
+
+// Storage can be unavailable (private mode, blocked site data), so the game falls back to defaults
 function loadHighScore() {
     try {
-        const saved = parseInt(localStorage.getItem(HIGH_SCORE_KEY), 10);
-        return Number.isFinite(saved) && saved > 0 ? saved : 0;
+        let saved = localStorage.getItem(highScoreKey());
+        // Earlier versions saved the best streak, which is exactly a 1-life score
+        if (saved === null && maxLives === 1) saved = localStorage.getItem('opQuizBestStreak');
+        const value = parseInt(saved, 10);
+        return Number.isFinite(value) && value > 0 ? value : 0;
     } catch {
         return 0;
     }
@@ -484,9 +549,25 @@ function loadHighScore() {
 
 function saveHighScore(value) {
     try {
-        localStorage.setItem(HIGH_SCORE_KEY, String(value));
+        localStorage.setItem(highScoreKey(), String(value));
     } catch {
-        // Best streak just won't persist this session
+        // Best score just won't persist this session
+    }
+}
+
+function loadLivesSetting() {
+    try {
+        return localStorage.getItem(LIVES_KEY) === '1' ? 1 : 3;
+    } catch {
+        return 3;
+    }
+}
+
+function saveLivesSetting(value) {
+    try {
+        localStorage.setItem(LIVES_KEY, String(value));
+    } catch {
+        // Setting just won't be remembered
     }
 }
 

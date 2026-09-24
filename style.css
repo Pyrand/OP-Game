@@ -70,22 +70,34 @@ body {
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
 }
 
-#mode-select {
+/* Elements with display rules (e.g. #question-area's flex) would otherwise ignore the hidden attribute */
+[hidden] {
+  display: none !important;
+}
+
+#settings {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px 30px;
+  margin-bottom: 25px;
+}
+
+.setting {
   display: inline-flex;
   align-items: center;
-  margin-bottom: 25px;
   background-color: transparent;
   border: none;
 }
 
-#mode-select label {
+.setting label {
   font-size: 1.2em;
   font-weight: 700;
   color: #6b5d5b;
   margin-right: 15px;
 }
 
-#mode {
+.setting select {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
@@ -102,7 +114,7 @@ body {
   transition: all 0.2s ease-in-out;
 }
 
-#mode:hover {
+.setting select:hover {
   border-color: #a53426;
   box-shadow: 0 0 4px rgba(165, 52, 38, 0.3);
 }
@@ -188,9 +200,52 @@ body {
 #score {
   font-size: 1.4em;
   font-weight: 700;
+  text-align: left;
 }
 
-#next-btn {
+#score .lives {
+  font-size: 0.8em;
+  letter-spacing: 2px;
+  margin-top: 4px;
+}
+
+#game-over {
+  margin: 25px 0;
+  padding: 25px;
+  background-color: #f8f4eb;
+  border: 1px solid #baa88d;
+  border-radius: 4px;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.1);
+}
+
+#game-over-title {
+  font-family: 'Pirata One', cursive;
+  font-size: 2.8em;
+  font-weight: 400;
+  color: #a53426;
+  text-shadow: 2px 2px 0px #9d8456;
+  margin-bottom: 10px;
+}
+
+#final-score {
+  font-size: 1.6em;
+  font-weight: 700;
+}
+
+#new-record {
+  font-size: 1.2em;
+  font-weight: 700;
+  color: #52a373;
+  margin-top: 8px;
+}
+
+#final-best {
+  color: #6b5d5b;
+  margin-top: 8px;
+}
+
+#next-btn,
+#play-again-btn {
   display: none;
   font-family: 'Pirata One', cursive;
   font-size: 1.5em;
@@ -205,7 +260,13 @@ body {
   transition: all 0.1s ease-in-out;
 }
 
-#next-btn:hover {
+#play-again-btn {
+  display: inline-block;
+  margin-top: 20px;
+}
+
+#next-btn:hover,
+#play-again-btn:hover {
   background: #6b9bc4;
   transform: translateY(-1px);
   box-shadow: 0 4px 0 #4a7699;
@@ -269,20 +330,20 @@ body {
     max-height: 180px;
   }
 
-  #mode-select {
+  .setting {
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 0;
   }
 
-  #mode-select label {
+  .setting label {
     font-size: 1.1em;
     margin-right: 0;
     margin-bottom: 5px;
   }
 
-  #mode {
+  .setting select {
     font-size: 1em;
     padding: 10px 40px 10px 15px;
     min-width: 200px;
@@ -306,6 +367,7 @@ body {
 
   #score {
     font-size: 1.3em;
+    text-align: center;
   }
 
   #next-btn {
@@ -340,11 +402,11 @@ body {
     max-height: 150px;
   }
 
-  #mode-select label {
+  .setting label {
     font-size: 1em;
   }
 
-  #mode {
+  .setting select {
     font-size: 0.95em;
     padding: 8px 35px 8px 12px;
     min-width: 180px;
@@ -399,7 +461,7 @@ body {
     max-height: 120px;
   }
 
-  #mode {
+  .setting select {
     font-size: 0.9em;
     padding: 6px 30px 6px 10px;
     min-width: 160px;
